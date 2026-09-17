@@ -32,6 +32,7 @@ flagged.
 - Simple web interface (Flask) — paste a link or email text and get an
   instant assessment
 - Unit-tested core logic (12 tests covering detection rules and edge cases)
+![Dashboard screenshot](Phishing.PNG)
 
 ## Tech Stack
 
