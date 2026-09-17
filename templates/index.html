@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Phishing URL & Email Analyzer</title>
+    <style>
+        body {
+            font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+            background: #0f1117;
+            color: #e6e6e6;
+            margin: 0;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+        .subtitle { color: #8a8f98; margin-bottom: 2rem; font-size: 0.9rem; }
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px 8px 0 0;
+            border: none;
+            cursor: pointer;
+            background: #1a1d27;
+            color: #8a8f98;
+            font-size: 0.9rem;
+        }
+        .tab-btn.active { background: #23273580; color: #fff; font-weight: 600; }
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            background: #1a1d27;
+            color: #e6e6e6;
+            border: 1px solid #2a2d38;
+            border-radius: 8px;
+            padding: 0.8rem;
+            font-family: inherit;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        button.submit-btn {
+            margin-top: 0.8rem;
+            padding: 0.6rem 1.4rem;
+            background: #4f7cff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        button.submit-btn:hover { background: #3d68e8; }
+        .result-card {
+            margin-top: 2rem;
+            background: #1a1d27;
+            border-radius: 10px;
+            padding: 1.4rem;
+            border-left: 5px solid #333;
+        }
+        .result-card.LOW { border-left-color: #2ecc71; }
+        .result-card.MEDIUM { border-left-color: #f39c12; }
+        .result-card.HIGH { border-left-color: #e74c3c; }
+        .risk-badge {
+            display: inline-block;
+            padding: 0.25rem 0.8rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+        }
+        .risk-badge.LOW { background: rgba(46,204,113,0.15); color: #2ecc71; }
+        .risk-badge.MEDIUM { background: rgba(243,156,18,0.15); color: #f39c12; }
+        .risk-badge.HIGH { background: rgba(231,76,60,0.15); color: #e74c3c; }
+        .score { color: #8a8f98; font-size: 0.85rem; margin-bottom: 1rem; }
+        ul.reasons { margin: 0; padding-left: 1.2rem; }
+        ul.reasons li { margin-bottom: 0.4rem; font-size: 0.9rem; }
+        .url-label { font-family: monospace; word-break: break-all; color: #c5c9d3; margin-bottom: 0.6rem; }
+        .language-flags {
+            margin-top: 1.5rem;
+            background: #241a1a;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .language-flags h3 { margin-top: 0; font-size: 0.95rem; color: #e74c3c; }
+        .disclaimer {
+            margin-top: 3rem;
+            padding: 1rem;
+            background: #1a1d27;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #8a8f98;
+        }
+    </style>
+</head>
+<body>
+    <h1>Phishing URL &amp; Email Analyzer</h1>
+    <p class="subtitle">Paste a link or an email's text to check for common phishing red flags.</p>
+
+    <form method="POST">
+        <div class="tabs">
+            <button type="submit" name="mode" value="url" class="tab-btn">Check a URL</button>
+            <button type="submit" name="mode" value="text" class="tab-btn">Check email text</button>
+        </div>
+        <textarea name="input_text" placeholder="Paste a URL, or paste the full text of a suspicious email here...">{{ submitted_input }}</textarea>
+        <br>
+        <button type="submit" name="mode" value="url" class="submit-btn">Analyze</button>
+    </form>
+
+    {% if result %}
+    <div class="result-card {{ result.risk_level }}">
+        <span class="risk-badge {{ result.risk_level }}">{{ result.risk_level }} RISK</span>
+        <div class="score">Risk score: {{ result.score }}/100</div>
+        <div class="url-label">{{ result.url }}</div>
+        <ul class="reasons">
+            {% for reason in result.reasons %}
+            <li>{{ reason }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if text_result %}
+        {% if text_result.language_flags %}
+        <div class="language-flags">
+            <h3>⚠ Urgency / social-engineering language detected</h3>
+            <ul class="reasons">
+                {% for phrase in text_result.language_flags %}
+                <li>Contains phrase: "{{ phrase }}"</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if text_result.urls %}
+            {% for r in text_result.urls %}
+            <div class="result-card {{ r.risk_level }}">
+                <span class="risk-badge {{ r.risk_level }}">{{ r.risk_level }} RISK</span>
+                <div class="score">Risk score: {{ r.score }}/100</div>
+                <div class="url-label">{{ r.url }}</div>
+                <ul class="reasons">
+                    {% for reason in r.reasons %}
+                    <li>{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color:#8a8f98; margin-top:1.5rem;">No URLs found in the pasted text.</p>
+        {% endif %}
+    {% endif %}
+
+    <div class="disclaimer">
+        This is an educational heuristic tool built to demonstrate common phishing indicators
+        (typosquatting, suspicious TLDs, urgency language, etc). It is not a substitute for
+        enterprise email security or antivirus software, and a LOW score does not guarantee a
+        link is safe.
+    </div>
+</body>
+</html>
